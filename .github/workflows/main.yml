@@ -1,0 +1,41 @@
+# 工作流名称：私有仓库HTML同步到GitHub Pages公共仓库
+name: Sync Private HTML to Public Pages
+
+# 触发条件：向私有仓库的main分支提交代码自动触发，也支持手动触发
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# 执行的部署任务
+jobs:
+  deploy-to-public-pages:
+    runs-on: ubuntu-latest
+    steps:
+      # 步骤1：拉取私有仓库main分支的源码
+      - name: Checkout Private Repository Main Branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # 步骤2：同步HTML到新公共仓库Y-Faith.github.io
+      - name: Deploy to Y-Faith.github.io
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          # 授权令牌：对应私有仓库的PAGES_DEPLOY_TOKEN
+          personal_token: ${{ secrets.PAGES_DEPLOY_TOKEN }}
+          # 关键更新：匹配你新的公共仓库名（Y-Faith.github.io）
+          external_repository: Y-Faith/Y-Faith.github.io
+          # 同步私有仓库根目录的HTML文件
+          publish_dir: ./
+          # 公共仓库的目标分支（main，和你的仓库默认分支匹配）
+          publish_branch: main
+          # 自动覆盖旧文件，解决同步冲突
+          force_orphan: true
+          # 同步提交信息，方便排查
+          commit_message: "Auto sync HTML from Private Repository: ${{ github.event.head_commit.message }}"
+          # 排除无用文件，优化同步体积
+          exclude_assets: |
+            .gitignore
+            README.md
+            .github/workflows/

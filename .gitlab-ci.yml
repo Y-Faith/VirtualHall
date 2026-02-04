@@ -1,0 +1,15 @@
+image: nginx:alpine
+
+pages:
+  script:
+    - echo "仅部署HTML文件"
+  artifacts:
+    paths:
+      - .  # 保留根目录路径
+    exclude:
+      - README.md  # 排除README文件
+      - .gitlab-ci.yml  # 排除配置文件
+      - .git/**/*  # 排除.git目录（若存在）
+  publish: .
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH

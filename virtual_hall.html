@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -251,7 +251,7 @@
 
     <script>
         // ========== 新增：背景音乐系统 ==========
-        const musicFolder = "music"; // 音乐文件夹名称
+        const musicFolder = "http://t9xj34bm7.hn-bkt.clouddn.com/music"; // 音乐文件夹完整外链地址
         let backgroundMusic = null;
         let isMusicPlaying = false;
         let currentMusicIndex = 0;
@@ -273,7 +273,7 @@
                 // 创建Audio对象
                 backgroundMusic = new Audio();
                 backgroundMusic.loop = true; // 循环播放
-                backgroundMusic.volume = 0.5; // 音量设为100%
+                backgroundMusic.volume = 0.5; // 音量设为50%
 
                 // 尝试加载音乐文件列表
                 loadMusicFiles();
@@ -306,7 +306,6 @@
         // 加载音乐文件列表
         function loadMusicFiles() {
             // 这里是硬编码的音乐文件列表
-            // 你可以将音乐文件放在music文件夹中，并在这里添加文件名
             musicFiles = [
                 "灯火里的中国 钢琴版.mp3"
             ];
@@ -328,7 +327,7 @@
 
             currentMusicIndex = index;
             const musicFile = musicFiles[index];
-            const musicPath = `${musicFolder}/${musicFile}`;
+            const musicPath = `${musicFolder}/${encodeURIComponent(musicFile)}`; // 使用完整外链路径
 
             console.log(`🎵 尝试播放: ${musicPath}`);
 
@@ -559,9 +558,9 @@
         const characterLoader = new THREE.GLTFLoader();
         let characterModel = null;
 
-        // 加载人物模型
+        // 加载人物模型 - 使用七牛云外链路径
         characterLoader.load(
-            '3d_models/character.glb', // 人物模型文件路径
+            'http://t9xj34bm7.hn-bkt.clouddn.com/3d_models/character.glb', // 人物模型完整外链路径
             (gltf) => {
                 characterModel = gltf.scene;
 
@@ -605,7 +604,7 @@
                 console.log(`人物模型加载进度：${Math.round((xhr.loaded / xhr.total) * 100)}%`);
             },
             (error) => {
-                console.log("❌ 人物模型加载失败 (路径: 3d_models/character.glb)，使用默认方块", error);
+                console.log("❌ 人物模型加载失败 (路径: http://t9xj34bm7.hn-bkt.clouddn.com/3d_models/character.glb)，使用默认方块", error);
                 // 使用默认方块作为回退
                 const playerGeo = new THREE.BoxGeometry(0.8, 1.8, 0.8);
                 const playerMat = new THREE.MeshStandardMaterial({
@@ -825,8 +824,8 @@
 
         // ========== 9. 核心：展品设置（包括介绍功能） ==========
         const totalExhibits = 20;
-        const modelFolder = "3d_models";
-        const introductionFolder = "introduction"; // 介绍文本文件夹
+        const modelFolder = "http://t9xj34bm7.hn-bkt.clouddn.com/3d_models"; // 模型文件夹完整外链地址
+        const introductionFolder = "http://t9xj34bm7.hn-bkt.clouddn.com/introduction"; // 介绍文本文件夹完整外链地址
         const exhibitGapX = 18;
         const exhibitGapZ = 18;
         const modelScale = 3.0;
@@ -972,7 +971,7 @@
         // 新增：存储所有GLB模型引用的数组
         const glbModels = [];
 
-        // 新增：加载介绍文本的函数 - 修改路径为introduction文件夹
+        // 新增：加载介绍文本的函数 - 使用完整外链路径
         function loadExhibitInfo(modelIndex) {
             return fetch(`${introductionFolder}/${modelIndex}.txt`)
                 .then(response => {
@@ -1015,7 +1014,7 @@
             const modelIndex = i + 1;
 
             loader.load(
-                `${modelFolder}/${modelIndex}.glb`,
+                `${modelFolder}/${modelIndex}.glb`, // 使用完整外链路径
                 (gltf) => {
                     const model = gltf.scene;
 
@@ -1311,36 +1310,6 @@
 
         updateCamera();
 
-        console.log("✅ 展厅已启动（优化版人物模型）：");
-        console.log("📊 性能优化设置：");
-        console.log("  - 像素比固定: 1.0");
-        console.log("  - 抗锯齿: 关闭");
-        console.log("  - 渲染精度: lowp");
-        console.log("  - 检测频率: 每5帧检测一次");
-        console.log("  - 最大检测距离: " + MAX_DISTANCE + "单位");
-        console.log("  - 帧率限制: " + fpsLimit + "FPS");
-        console.log("  - 阴影分辨率: 1024x1024");
-        console.log("🎵 背景音乐系统：");
-        console.log("  - 音乐文件夹: " + musicFolder);
-        console.log("  - 自动播放: 是（需要用户交互后）");
-        console.log("  - 循环播放: 是");
-        console.log("  - 音量: 50%");
-        console.log("👤 人物模型设置：");
-        console.log("  - 模型文件: 3d_models/character.glb");
-        console.log("  - 模型高度: -0.3（离地面距离）");
-        console.log("  - 模型旋转: 180度");
-        console.log("  - 第一人称视角: 隐藏人物模型");
-        console.log("  - 第三人称视角: 显示人物模型");
-        console.log("  - 自发光强度: 0.3");
-        console.log("  - 阴影: 禁用（性能优化）");
-        console.log("📊 模型增强参数：");
-        console.log("  - 自发光强度: " + modelEmissiveIntensity);
-        console.log("  - 材质亮度提升: " + modelBrightnessBoost + "倍");
-        console.log("  - 所有模型统一倾斜角度: " + Math.round(unifiedTiltAngle * 180 / Math.PI) + "度");
-        console.log("  - 每个模型有专属光源");
-        console.log("  - 展品介绍功能已启用（仅第一人称视角，已优化性能）");
-        console.log("  - 介绍文本路径: " + introductionFolder + "/");
-        console.log("  - TXT格式: 第一行为展品名称，剩余为介绍内容");
-    </script>
-</body>
-</html>
+        console.log("✅ 展厅已启动（七牛云外链版）：");
+        console.log("📊 资源路径配置：");
+        console.log("  - 模型文件: http://t9xj34bm7.hn-bkt.clouddn.com/

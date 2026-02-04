@@ -1,0 +1,1346 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>3D虚拟展厅</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #87CEEB, #e6f7ff);
+            cursor: none;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: #333;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            background: rgba(255,255,255,0.9);
+            padding: 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-width: 320px;
+            z-index: 100;
+        }
+
+            .info p {
+                margin: 4px 0;
+            }
+
+            .info .title {
+                font-weight: bold;
+                margin-bottom: 6px;
+                color: #2c3e50;
+            }
+
+            .info .highlight {
+                color: #e74c3c;
+                font-weight: bold;
+            }
+
+            .info .perspective {
+                color: #3498db;
+                font-weight: bold;
+            }
+
+        .cursor-dot {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 0 6px rgba(0,0,0,0.8);
+            border: 1px solid rgba(0, 0, 0, 0.3);
+            display: none;
+        }
+
+        .click-to-start {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            z-index: 1001;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+            .click-to-start:hover {
+                background-color: rgba(30, 30, 30, 0.9);
+            }
+
+        .perspective-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            z-index: 100;
+            box-shadow: 0 0 8px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        /* 新增：音乐指示器样式 */
+        .music-indicator {
+            position: fixed;
+            top: 50px; /* 在视角指示器下面 */
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            z-index: 100;
+            box-shadow: 0 0 8px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+            cursor: default; /* 改为默认，表示不可点击 */
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            max-width: 300px;
+        }
+
+            .music-indicator:hover {
+                background-color: rgba(0, 0, 0, 0.9); /* 移除悬停效果 */
+                transform: none; /* 移除悬停效果 */
+                box-shadow: 0 0 8px rgba(0,0,0,0.3); /* 移除悬停效果 */
+            }
+
+        .music-icon {
+            margin-right: 8px;
+            font-size: 14px;
+        }
+
+        .music-playing {
+            color: #4CAF50;
+        }
+
+        .music-paused {
+            color: #ff9800;
+        }
+
+        .music-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+
+        /* 新增：展品介绍样式 */
+        .exhibit-info {
+            position: fixed;
+            top: 50%;
+            right: 20px; /* 改为固定在右侧，距离右边20px */
+            transform: translateY(-50%); /* 只垂直居中 */
+            background-color: rgba(0, 0, 0, 0.8); /* 80%不透明度 */
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            width: 380px; /* 固定宽度 */
+            max-height: 400px; /* 增加最大高度 */
+            overflow-y: auto;
+            z-index: 1002;
+            box-shadow: 0 0 20px rgba(0,0,0,0.7);
+            border: 2px solid rgba(255,255,255,0.2);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+            .exhibit-info.show {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+        .exhibit-info-name {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #ff8c00; /* 橙色，类似#ffa500但更鲜明 */
+            text-align: center;
+            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(255, 140, 0, 0.3);
+            text-shadow: 0 0 5px rgba(255, 140, 0, 0.3);
+        }
+
+        .exhibit-info-content {
+            line-height: 1.6;
+            text-align: justify;
+            font-size: 15px;
+            color: #f0f0f0;
+        }
+
+        /* 自定义滚动条 */
+        .exhibit-info::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .exhibit-info::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .exhibit-info::-webkit-scrollbar-thumb {
+            background: rgba(255, 140, 0, 0.5);
+            border-radius: 4px;
+        }
+
+            .exhibit-info::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 140, 0, 0.7);
+            }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <p class="title">🎮 3D虚拟展厅操作说明</p>
+        <p>• <span class="highlight">WASD键</span> - 控制玩家移动</p>
+        <p>• <span class="highlight">鼠标移动</span> - 旋转视角</p>
+        <p>• <span class="highlight">空格键</span> - 玩家上升 | <span class="highlight">Shift键</span> - 玩家下降</p>
+        <p>• <span class="highlight">V键</span> - <span class="perspective">切换第一人称/第三人称视角</span></p>
+        <p>• <span class="highlight">M键</span> - 暂停/播放背景音乐</p>
+        <p>• <span class="highlight">ESC键</span> - 退出鼠标锁定模式</p>
+        <p>• <span class="highlight">展品介绍</span>：第一人称视角下，准星对准展品时显示介绍</p>
+        <p>• <span class="highlight">背景音乐</span>：点击"开始控制"后自动播放，按M键控制播放/暂停</p>
+    </div>
+
+    <div class="cursor-dot" id="cursorDot"></div>
+    <div class="click-to-start" id="clickToStart">点击此处开始控制</div>
+    <div class="perspective-indicator" id="perspectiveIndicator">第一人称视角</div>
+
+    <!-- 新增：音乐指示器 -->
+    <div class="music-indicator" id="musicIndicator">
+        <span class="music-icon" id="musicIcon">▶️</span>
+        <span class="music-name" id="musicName">加载中...</span>
+    </div>
+
+    <!-- 新增：展品介绍容器 -->
+    <div class="exhibit-info" id="exhibitInfo">
+        <div class="exhibit-info-name" id="exhibitInfoName">展品名称</div>
+        <div class="exhibit-info-content" id="exhibitInfoContent">展品介绍内容</div>
+    </div>
+
+    <!-- 引入稳定Three.js及GLTF加载器CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/loaders/GLTFLoader.js"></script>
+
+    <script>
+        // ========== 新增：背景音乐系统 ==========
+        const musicFolder = "music"; // 音乐文件夹名称
+        let backgroundMusic = null;
+        let isMusicPlaying = false;
+        let currentMusicIndex = 0;
+        let musicFiles = [
+            "灯火里的中国 钢琴版.mp3"
+        ]; // 存储音乐文件列表
+
+        // 音乐指示器元素
+        const musicIndicator = document.getElementById('musicIndicator');
+        const musicIcon = document.getElementById('musicIcon');
+        const musicName = document.getElementById('musicName');
+
+        // 初始化背景音乐系统
+        function initBackgroundMusic() {
+            console.log("🎵 初始化背景音乐系统...");
+
+            // 创建音频上下文（兼容性处理）
+            try {
+                // 创建Audio对象
+                backgroundMusic = new Audio();
+                backgroundMusic.loop = true; // 循环播放
+                backgroundMusic.volume = 0.5; // 音量设为100%
+
+                // 尝试加载音乐文件列表
+                loadMusicFiles();
+
+                // 设置音乐播放状态更新
+                backgroundMusic.addEventListener('play', () => {
+                    updateMusicUI(true);
+                });
+
+                backgroundMusic.addEventListener('pause', () => {
+                    updateMusicUI(false);
+                });
+
+                backgroundMusic.addEventListener('ended', () => {
+                    playNextMusic();
+                });
+
+                // 不再点击音乐指示器切换播放状态
+                //musicIndicator.addEventListener('click', toggleMusicPlayback);
+
+                // 页面加载后自动播放音乐（需要用户交互，所以放在点击开始事件中）
+                console.log("✅ 背景音乐系统初始化完成");
+            } catch (error) {
+                console.error("❌ 背景音乐初始化失败:", error);
+                musicName.textContent = "音乐播放器初始化失败";
+                musicIndicator.style.display = 'none'; // 隐藏音乐指示器
+            }
+        }
+
+        // 加载音乐文件列表
+        function loadMusicFiles() {
+            // 这里是硬编码的音乐文件列表
+            // 你可以将音乐文件放在music文件夹中，并在这里添加文件名
+            musicFiles = [
+                "灯火里的中国 钢琴版.mp3"
+            ];
+
+            console.log(`🎵 发现 ${musicFiles.length} 个音乐文件`);
+
+            // 尝试播放第一个音乐文件
+            if (musicFiles.length > 0) {
+                playMusicByIndex(0);
+            } else {
+                musicName.textContent = "未找到音乐文件";
+                musicIcon.style.display = 'none';
+            }
+        }
+
+        // 按索引播放音乐
+        function playMusicByIndex(index) {
+            if (!backgroundMusic || index < 0 || index >= musicFiles.length) return;
+
+            currentMusicIndex = index;
+            const musicFile = musicFiles[index];
+            const musicPath = `${musicFolder}/${musicFile}`;
+
+            console.log(`🎵 尝试播放: ${musicPath}`);
+
+            // 设置音乐源
+            backgroundMusic.src = musicPath;
+
+            // 尝试播放（需要用户交互）
+            if (isMusicPlaying) {
+                backgroundMusic.play().catch(error => {
+                    console.log("⚠️ 自动播放被阻止，需要用户交互:", error);
+                    musicName.textContent = "点击播放音乐";
+                    musicIcon.textContent = "⏸️";
+                });
+            }
+
+            // 更新UI显示音乐名（去掉扩展名）
+            const displayName = musicFile.replace(/\.[^/.]+$/, "").replace(/_/g, " ");
+            musicName.textContent = displayName;
+        }
+
+        // 播放下一首音乐
+        function playNextMusic() {
+            if (musicFiles.length === 0) return;
+
+            currentMusicIndex = (currentMusicIndex + 1) % musicFiles.length;
+            playMusicByIndex(currentMusicIndex);
+
+            // 如果之前正在播放，继续播放
+            if (isMusicPlaying) {
+                backgroundMusic.play().catch(error => {
+                    console.log("切换音乐后播放失败:", error);
+                });
+            }
+        }
+
+        // 切换音乐播放状态
+        function toggleMusicPlayback() {
+            if (!backgroundMusic) return;
+
+            if (isMusicPlaying) {
+                backgroundMusic.pause();
+                isMusicPlaying = false;
+            } else {
+                backgroundMusic.play().then(() => {
+                    isMusicPlaying = true;
+                }).catch(error => {
+                    console.log("播放失败:", error);
+                    // 如果播放失败，提示用户点击开始控制
+                    musicName.textContent = "点击下方按钮开始";
+                });
+            }
+        }
+
+        // 开始播放音乐（在用户交互后调用）
+        function startMusicPlayback() {
+            if (!backgroundMusic || musicFiles.length === 0) return;
+
+            backgroundMusic.play().then(() => {
+                isMusicPlaying = true;
+                console.log("🎵 背景音乐开始播放");
+            }).catch(error => {
+                console.log("⚠️ 自动播放被阻止:", error);
+                musicName.textContent = "点击此处播放音乐";
+                musicIcon.textContent = "▶️";
+            });
+        }
+
+        // 更新音乐UI状态
+        function updateMusicUI(playing) {
+            isMusicPlaying = playing;
+
+            if (playing) {
+                musicIcon.textContent = "🎵";
+                musicIcon.className = "music-icon music-playing";
+                musicIndicator.title = "点击暂停音乐";
+            } else {
+                musicIcon.textContent = "⏸️";
+                musicIcon.className = "music-icon music-paused";
+                musicIndicator.title = "点击播放音乐";
+            }
+        }
+
+        // ========== 1. 场景核心初始化 ==========
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xe6f7ff);
+
+        const camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(0, 1.5, 5);
+
+        // 修改：降低渲染质量以提高性能
+        const renderer = new THREE.WebGLRenderer({
+            antialias: false, // 关闭抗锯齿
+            alpha: false,
+            precision: 'lowp' // 使用低精度
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(1.0); // 固定像素比为1.0，进一步降低质量
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        const rendererCanvas = renderer.domElement;
+        document.body.appendChild(rendererCanvas);
+
+        // ========== 2. 视角模式控制 ==========
+        let perspectiveMode = "first";
+        const perspectiveIndicator = document.getElementById('perspectiveIndicator');
+
+        // V键切换视角
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ') e.preventDefault();
+
+            switch (e.key.toLowerCase()) {
+                case 'w': keyStates.w = true; break;
+                case 'a': keyStates.a = true; break;
+                case 's': keyStates.s = true; break;
+                case 'd': keyStates.d = true; break;
+                case ' ': keyStates.space = true; break;
+                case 'shift': keyStates.shift = true; break;
+                case 'm': toggleMusicPlayback(); break;
+                case 'v': // 添加V键切换视角
+                    if (perspectiveMode === "first") {
+                        perspectiveMode = "third";
+                        perspectiveIndicator.textContent = "第三人称视角";
+                    } else {
+                        perspectiveMode = "first";
+                        perspectiveIndicator.textContent = "第一人称视角";
+                    }
+                    break;
+            }
+        });
+
+        // ========== 3. 鼠标锁定控制 ==========
+        let isMouseLocked = false;
+        const cursorDot = document.getElementById('cursorDot');
+        const clickToStart = document.getElementById('clickToStart');
+
+        clickToStart.style.display = 'block';
+
+        clickToStart.addEventListener('click', () => {
+            requestPointerLock();
+
+            // 用户点击开始后，启动背景音乐播放
+            startMusicPlayback();
+        });
+
+        rendererCanvas.addEventListener('click', () => {
+            if (!isMouseLocked) {
+                requestPointerLock();
+
+                // 用户点击后启动音乐播放
+                startMusicPlayback();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                exitPointerLock();
+            }
+        });
+
+        function requestPointerLock() {
+            rendererCanvas.requestPointerLock = rendererCanvas.requestPointerLock ||
+                rendererCanvas.mozRequestPointerLock ||
+                rendererCanvas.webkitRequestPointerLock;
+            rendererCanvas.requestPointerLock();
+        }
+
+        function exitPointerLock() {
+            document.exitPointerLock = document.exitPointerLock ||
+                document.mozExitPointerLock ||
+                document.webkitExitPointerLock;
+            document.exitPointerLock();
+        }
+
+        document.addEventListener('pointerlockchange', pointerLockChange, false);
+        document.addEventListener('mozpointerlockchange', pointerLockChange, false);
+        document.addEventListener('webkitpointerlockchange', pointerLockChange, false);
+
+        function pointerLockChange() {
+            if (document.pointerLockElement === rendererCanvas ||
+                document.mozPointerLockElement === rendererCanvas ||
+                document.webkitPointerLockElement === rendererCanvas) {
+                isMouseLocked = true;
+                cursorDot.style.display = 'block';
+                clickToStart.style.display = 'none';
+            } else {
+                isMouseLocked = false;
+                cursorDot.style.display = 'none';
+                clickToStart.style.display = 'block';
+            }
+        }
+
+        // ========== 4. 相机控制系统 ==========
+        let targetRotationX = Math.PI;
+        let targetRotationY = 0;
+        let currentRotationX = Math.PI;
+        let currentRotationY = 0;
+
+        const cameraDistance = 8;
+        const cameraHeight = 1;
+        const firstPersonHeight = 1.5;
+        const sensitivity = 0.002;
+
+        // 鼠标移动事件
+        document.addEventListener('mousemove', (e) => {
+            if (!isMouseLocked) return;
+
+            const movementX = e.movementX || e.mozMovementX || e.webkitMovementX || 0;
+            const movementY = e.movementY || e.mozMovementY || e.webkitMovementY || 0;
+
+            // 映射：
+            targetRotationX -= movementX * sensitivity;
+            targetRotationY += movementY * sensitivity;
+
+            targetRotationY = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, targetRotationY));
+        });
+
+        // ========== 5. 玩家对象==========
+        const player = new THREE.Object3D();
+        player.position.set(0, 0.5, 0);
+        scene.add(player);
+
+        // 人物模型加载器
+        const characterLoader = new THREE.GLTFLoader();
+        let characterModel = null;
+
+        // 加载人物模型
+        characterLoader.load(
+            '3d_models/character.glb', // 人物模型文件路径
+            (gltf) => {
+                characterModel = gltf.scene;
+
+                // 设置人物模型
+                characterModel.scale.set(2, 2, 2);
+                characterModel.position.y = -0.3;
+                characterModel.rotation.y = Math.PI;
+
+                characterModel.traverse((child) => {
+                    if (child.isMesh) {
+                        // 禁用人物模型阴影以提升性能
+                        child.castShadow = false;
+                        child.receiveShadow = false;
+
+                        // 为人物模型添加自发光效果
+                        if (child.material) {
+                            // 克隆材质避免影响其他物体
+                            const material = child.material.clone();
+
+                            // 设置自发光颜色和强度
+                            material.emissive = new THREE.Color(0x333333); // 灰色自发光
+                            material.emissiveIntensity = 0.3; // 自发光强度，调整这个值控制亮度
+
+                            // 增加材质本身的亮度
+                            if (material.color) {
+                                const originalColor = material.color.clone();
+                                const brighterColor = originalColor.multiplyScalar(1.5); // 提高1.5倍亮度
+                                material.color = brighterColor;
+                            }
+
+                            child.material = material;
+                        }
+                    }
+                });
+
+                // 添加到玩家对象
+                player.add(characterModel);
+                console.log("✅ 人物模型加载成功，已应用优化设置");
+            },
+            (xhr) => {
+                console.log(`人物模型加载进度：${Math.round((xhr.loaded / xhr.total) * 100)}%`);
+            },
+            (error) => {
+                console.log("❌ 人物模型加载失败 (路径: 3d_models/character.glb)，使用默认方块", error);
+                // 使用默认方块作为回退
+                const playerGeo = new THREE.BoxGeometry(0.8, 1.8, 0.8);
+                const playerMat = new THREE.MeshStandardMaterial({
+                    color: 0xff4444,
+                    metalness: 0.1,
+                    roughness: 0.7,
+                    // 为回退方块添加自发光
+                    emissive: 0x333333,
+                    emissiveIntensity: 0.3
+                });
+                characterModel = new THREE.Mesh(playerGeo, playerMat);
+                // 修改1: 调整回退方块高度，从0.9改为1.1
+                characterModel.position.y = 1.1;
+                // 添加旋转180度
+                characterModel.rotation.y = Math.PI;
+                // 修改3: 禁用阴影以提升性能
+                characterModel.castShadow = false;
+                player.add(characterModel);
+            }
+        );
+
+        // 第一人称视角下的手持物体
+        const firstPersonHand = new THREE.Mesh(
+            new THREE.BoxGeometry(0.3, 0.3, 0.6),
+            new THREE.MeshBasicMaterial({ color: 0x333333 })
+        );
+        firstPersonHand.position.set(0.3, -0.2, -0.5);
+        firstPersonHand.visible = false;
+        camera.add(firstPersonHand);
+
+        // ========== 6. WASD移动控制 - 修正移动方向 ==========
+        const keyStates = {
+            w: false, a: false, s: false, d: false,
+            space: false, shift: false
+        };
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ') e.preventDefault();
+
+            switch (e.key.toLowerCase()) {
+                case 'w': keyStates.w = true; break;
+                case 'a': keyStates.a = true; break;
+                case 's': keyStates.s = true; break;
+                case 'd': keyStates.d = true; break;
+                case ' ': keyStates.space = true; break;
+                case 'shift': keyStates.shift = true; break;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            switch (e.key.toLowerCase()) {
+                case 'w': keyStates.w = false; break;
+                case 'a': keyStates.a = false; break;
+                case 's': keyStates.s = false; break;
+                case 'd': keyStates.d = false; break;
+                case ' ': keyStates.space = false; break;
+                case 'shift': keyStates.shift = false; break;
+            }
+        });
+
+        const moveSpeed = 0.18;
+        const verticalSpeed = 0.15;
+
+        const groundBounds = {
+            minX: -50,
+            maxX: 50,
+            minZ: -50,
+            maxZ: 50,
+            minY: 0.5,
+            maxY: 20
+        };
+
+        // 移动逻辑 - 修正forward/right向量（核心修复移动方向）
+        function updatePlayerMovement() {
+            // 最终正确的方向向量：W前进、S后退、A左移、D右移
+            const forward = new THREE.Vector3(
+                Math.sin(currentRotationX),
+                0,
+                Math.cos(currentRotationX)
+            ).normalize();
+
+            const right = new THREE.Vector3(
+                -Math.cos(currentRotationX),
+                0,
+                Math.sin(currentRotationX)
+            ).normalize();
+
+            const moveVec = new THREE.Vector3(0, 0, 0);
+
+            if (keyStates.w) moveVec.add(forward);
+            if (keyStates.s) moveVec.sub(forward);
+            if (keyStates.d) moveVec.add(right);
+            if (keyStates.a) moveVec.sub(right);
+
+            if (moveVec.length() > 0) {
+                moveVec.normalize();
+                player.position.add(moveVec.multiplyScalar(moveSpeed));
+            }
+
+            player.position.x = Math.max(groundBounds.minX, Math.min(groundBounds.maxX, player.position.x));
+            player.position.z = Math.max(groundBounds.minZ, Math.min(groundBounds.maxZ, player.position.z));
+
+            if (keyStates.space) player.position.y += verticalSpeed;
+            if (keyStates.shift) player.position.y -= verticalSpeed;
+
+            player.position.y = Math.max(groundBounds.minY, Math.min(groundBounds.maxY, player.position.y));
+        }
+
+        // ========== 7. 相机更新函数 - 修正上下视角 ==========
+        function updateCamera() {
+            currentRotationX += (targetRotationX - currentRotationX) * 0.1;
+            currentRotationY += (targetRotationY - currentRotationY) * 0.1;
+
+            if (perspectiveMode === "first") {
+                // 第一人称视角
+                const cameraX = player.position.x;
+                const cameraY = player.position.y + firstPersonHeight;
+                const cameraZ = player.position.z;
+
+                camera.position.set(cameraX, cameraY, cameraZ);
+
+                // 鼠标右→视角右，鼠标上→视角上
+                const lookX = cameraX + Math.sin(currentRotationX) * Math.cos(currentRotationY);
+                const lookY = cameraY - Math.sin(currentRotationY);
+                const lookZ = cameraZ + Math.cos(currentRotationX) * Math.cos(currentRotationY);
+
+                camera.lookAt(lookX, lookY, lookZ);
+
+                firstPersonHand.visible = true;
+
+                // 第一人称隐藏人物模型
+                if (characterModel) {
+                    characterModel.visible = false;
+                }
+            } else {
+                // 第三人称视角
+                const cameraX = player.position.x - Math.sin(currentRotationX) * cameraDistance * Math.cos(currentRotationY);
+                const cameraY = player.position.y + cameraHeight + Math.sin(currentRotationY) * cameraDistance;
+                const cameraZ = player.position.z - Math.cos(currentRotationX) * cameraDistance * Math.cos(currentRotationY);
+
+                camera.position.set(cameraX, cameraY, cameraZ);
+                camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
+
+                firstPersonHand.visible = false;
+
+                // 第三人称显示人物模型
+                if (characterModel) {
+                    characterModel.visible = true;
+
+                    // 新增：让人物模型始终朝向视角正前方
+                    // 计算目标旋转角度（忽略垂直视角，只使用水平视角）
+                    const targetRotation = currentRotationX;
+                    const currentRotation = characterModel.rotation.y;
+                    const smoothFactor = 0.1; // 平滑系数，可以调整旋转速度
+
+                    // 计算角度差并处理360度环绕
+                    let angleDiff = targetRotation - currentRotation;
+                    if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                    if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+                    // 应用平滑旋转
+                    characterModel.rotation.y += angleDiff * smoothFactor;
+                }
+            }
+        }
+
+        // ========== 8. 虚拟展厅搭建 ==========
+        const groundConfig = {
+            length: 100,
+            width: 100,
+            color: 0xf5f5f5
+        };
+
+        const floorGeo = new THREE.PlaneGeometry(groundConfig.length, groundConfig.width);
+        const floorMat = new THREE.MeshStandardMaterial({
+            color: groundConfig.color,
+            roughness: 0.8,
+            metalness: 0.05
+        });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = 0;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        const gridHelper = new THREE.GridHelper(100, 100, 0xcccccc, 0xeeeeee);
+        gridHelper.position.y = 0.01;
+        scene.add(gridHelper);
+
+        const boundaryLineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+        const boundaryPoints = [];
+        boundaryPoints.push(new THREE.Vector3(groundBounds.minX, 0.1, groundBounds.minZ));
+        boundaryPoints.push(new THREE.Vector3(groundBounds.maxX, 0.1, groundBounds.minZ));
+        boundaryPoints.push(new THREE.Vector3(groundBounds.maxX, 0.1, groundBounds.maxZ));
+        boundaryPoints.push(new THREE.Vector3(groundBounds.minX, 0.1, groundBounds.maxZ));
+        boundaryPoints.push(new THREE.Vector3(groundBounds.minX, 0.1, groundBounds.minZ));
+
+        const boundaryGeometry = new THREE.BufferGeometry().setFromPoints(boundaryPoints);
+        const boundaryLine = new THREE.Line(boundaryGeometry, boundaryLineMaterial);
+        scene.add(boundaryLine);
+
+        const cornerGeometry = new THREE.BoxGeometry(0.5, 1, 0.5);
+        const cornerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+
+        const cornerPositions = [
+            { x: groundBounds.minX, z: groundBounds.minZ },
+            { x: groundBounds.maxX, z: groundBounds.minZ },
+            { x: groundBounds.maxX, z: groundBounds.maxZ },
+            { x: groundBounds.minX, z: groundBounds.maxZ }
+        ];
+
+        cornerPositions.forEach(pos => {
+            const corner = new THREE.Mesh(cornerGeometry, cornerMaterial);
+            corner.position.set(pos.x, 0.5, pos.z);
+            scene.add(corner);
+        });
+
+        // ========== 9. 核心：展品设置（包括介绍功能） ==========
+        const totalExhibits = 20;
+        const modelFolder = "3d_models";
+        const introductionFolder = "introduction"; // 介绍文本文件夹
+        const exhibitGapX = 18;
+        const exhibitGapZ = 18;
+        const modelScale = 3.0;
+        const modelY = 2.0;
+
+        // 统一的倾斜角度（弧度制）- 约-17度
+        const unifiedTiltAngle = -0.3;
+
+        // 模型增强参数（只针对模型）
+        const modelSelfIllumination = true;
+        const modelEmissiveIntensity = 1.5; // 自发光强度
+        const modelBrightnessBoost = 5.0; // 模型材质亮度提升倍数
+
+        const cols = 5;
+        const rows = Math.ceil(totalExhibits / cols);
+        const startX = -(cols - 1) * exhibitGapX / 2;
+        const startZ = -(rows - 1) * exhibitGapZ / 2;
+
+        const loader = new THREE.GLTFLoader();
+
+        // 蓝色方块配置（保持原样，不受影响）
+        const exhibitGeo = new THREE.BoxGeometry(2.5, 3, 2.5);
+        const exhibitMat = new THREE.MeshStandardMaterial({
+            color: 0x4488ff,
+            roughness: 0.6,
+            metalness: 0.15
+        });
+
+        // 创建模型增强函数 - 只修改模型本身
+        function enhanceModelOnly(model) {
+            // 遍历模型的所有网格
+            model.traverse((child) => {
+                if (child.isMesh) {
+                    // 只修改模型的材质，不影响其他属性
+                    const originalMaterial = child.material;
+
+                    // 检查是否是数组材质（多个材质）
+                    if (Array.isArray(originalMaterial)) {
+                        // 处理材质数组
+                        const enhancedMaterials = originalMaterial.map(mat => enhanceSingleMaterial(mat));
+                        child.material = enhancedMaterials;
+                    } else {
+                        // 处理单个材质
+                        child.material = enhanceSingleMaterial(originalMaterial);
+                    }
+
+                    // 确保阴影设置不变
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+
+            return model;
+        }
+
+        // 增强单个材质（核心函数）
+        function enhanceSingleMaterial(material) {
+            // 创建新材质或修改现有材质
+            let enhancedMaterial;
+
+            if (!material) {
+                // 如果没有材质，创建新的明亮材质
+                enhancedMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xffffff,
+                    roughness: 0.3,
+                    metalness: 0.1,
+                    emissive: 0xffffff,
+                    emissiveIntensity: modelSelfIllumination ? modelEmissiveIntensity : 0
+                });
+            } else {
+                // 克隆现有材质以避免影响其他物体
+                enhancedMaterial = material.clone();
+
+                // 增加材质亮度
+                if (enhancedMaterial.color) {
+                    // 将颜色调亮
+                    const originalColor = enhancedMaterial.color.clone();
+                    const brighterColor = originalColor.multiplyScalar(modelBrightnessBoost);
+                    enhancedMaterial.color = brighterColor;
+                }
+
+                // 增加自发光
+                if (modelSelfIllumination) {
+                    if (!enhancedMaterial.emissive) {
+                        enhancedMaterial.emissive = enhancedMaterial.color
+                            ? enhancedMaterial.color.clone().multiplyScalar(0.5) // 使用原色的50%作为自发光
+                            : new THREE.Color(0x888888);
+                    }
+                    enhancedMaterial.emissiveIntensity = modelEmissiveIntensity;
+                }
+
+                // 使表面更光滑，反射更多光线
+                enhancedMaterial.roughness = Math.min(enhancedMaterial.roughness || 0.5, 0.3);
+                enhancedMaterial.metalness = Math.max(enhancedMaterial.metalness || 0, 0.1);
+
+                // 确保材质更新
+                enhancedMaterial.needsUpdate = true;
+            }
+
+            return enhancedMaterial;
+        }
+
+        // 为模型添加专属光源（只照亮该模型）
+        function addModelSpecificLights(model) {
+            // 计算模型包围盒
+            const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+            const modelSize = Math.max(size.x, size.y, size.z);
+
+            // 1. 正面主光源
+            const frontDir = new THREE.Vector3(
+                0, // X方向不变，因为模型Y轴不旋转
+                0.3, // 固定高度
+                1 // Z方向向前
+            ).normalize();
+
+            const frontLight = new THREE.PointLight(0xffffff, 4.0, modelSize * 3);
+            frontLight.position.copy(center).add(frontDir.multiplyScalar(modelSize * 1.5));
+            model.add(frontLight);
+
+            // 2. 顶部光源
+            const topLight = new THREE.PointLight(0xffffff, 2.5, modelSize * 3);
+            topLight.position.set(
+                center.x,
+                center.y + modelSize * 1.2,
+                center.z
+            );
+            model.add(topLight);
+
+            // 3. 侧补光
+            const sideLight = new THREE.PointLight(0xffffff, 1.5, modelSize * 2);
+            sideLight.position.set(
+                center.x - modelSize * 1.2, // 左侧补光
+                center.y + modelSize * 0.5,
+                center.z
+            );
+            model.add(sideLight);
+
+            return model;
+        }
+
+        // 新增：存储所有GLB模型引用的数组
+        const glbModels = [];
+
+        // 新增：加载介绍文本的函数 - 修改路径为introduction文件夹
+        function loadExhibitInfo(modelIndex) {
+            return fetch(`${introductionFolder}/${modelIndex}.txt`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`无法加载介绍文件: ${introductionFolder}/${modelIndex}.txt`);
+                    }
+                    return response.text();
+                })
+                .then(text => {
+                    // 解析文本：第一行为展品名称，剩下的为介绍内容
+                    const lines = text.split('\n').filter(line => line.trim() !== '');
+                    let name = `展品 ${modelIndex}`;
+                    let content = "暂无详细介绍";
+
+                    if (lines.length > 0) {
+                        name = lines[0].trim(); // 第一行是名称
+                        if (lines.length > 1) {
+                            // 从第二行开始是介绍内容
+                            content = lines.slice(1).join('\n').trim();
+                        }
+                    }
+
+                    return { name, content };
+                })
+                .catch(error => {
+                    console.log(`展品${modelIndex}的介绍文件未找到，使用默认介绍`);
+                    return {
+                        name: `展品 ${modelIndex}`,
+                        content: `这是展品${modelIndex}的默认介绍。\n\n该展品展示了独特的3D模型，具有精美的细节和设计。`
+                    };
+                });
+        }
+
+        // 循环创建展品
+        for (let i = 0; i < totalExhibits; i++) {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const posX = startX + col * exhibitGapX;
+            const posZ = startZ + row * exhibitGapZ;
+            const modelIndex = i + 1;
+
+            loader.load(
+                `${modelFolder}/${modelIndex}.glb`,
+                (gltf) => {
+                    const model = gltf.scene;
+
+                    // 1. 统一模型大小
+                    model.scale.setScalar(modelScale);
+
+                    // 2. 模型位置和角度 - 使用统一倾斜角度
+                    model.position.set(posX, modelY, posZ);
+
+                    // 设置模型旋转：所有模型统一倾斜角度
+                    model.rotation.x = unifiedTiltAngle; // 统一倾斜角度
+                    model.rotation.y = 0; // Y轴不旋转
+
+                    // 3. 只增强模型本身亮度
+                    enhanceModelOnly(model);
+
+                    // 4. 为模型添加专属光源
+                    addModelSpecificLights(model);
+
+                    // 5. 为模型添加包围盒，用于高效碰撞检测
+                    const boundingBox = new THREE.Box3().setFromObject(model);
+
+                    // 6. 存储模型引用和相关信息
+                    const modelInfo = {
+                        model: model,
+                        modelIndex: modelIndex,
+                        position: { x: posX, y: modelY, z: posZ },
+                        boundingBox: boundingBox,
+                        infoName: null,
+                        infoContent: null,
+                        infoLoaded: false,
+                        lastCheckTime: 0
+                    };
+
+                    glbModels.push(modelInfo);
+
+                    // 7. 异步加载介绍文本
+                    loadExhibitInfo(modelIndex)
+                        .then(info => {
+                            modelInfo.infoName = info.name;
+                            modelInfo.infoContent = info.content;
+                            modelInfo.infoLoaded = true;
+                            console.log(`模型${modelIndex}：介绍文本已加载 - "${info.name}"`);
+                        });
+
+                    // 8. 添加到场景
+                    scene.add(model);
+
+                    console.log(`模型${modelIndex}：已应用统一倾斜${Math.round(unifiedTiltAngle * 180 / Math.PI)}度`);
+                },
+                (xhr) => {
+                    console.log(`模型${modelIndex}加载进度：${Math.round((xhr.loaded / xhr.total) * 100)}%`);
+                },
+                (error) => {
+                    console.log(`模型${modelIndex}未找到，使用蓝色方块兜底`, error);
+                    const cube = new THREE.Mesh(exhibitGeo, exhibitMat);
+                    cube.position.set(posX, 1.5, posZ);
+                    cube.rotation.y = 0;
+                    cube.castShadow = true;
+                    scene.add(cube);
+                }
+            );
+        }
+
+        // 角落装饰方块（保持原样）
+        const decorGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+        const decorMat = new THREE.MeshStandardMaterial({
+            color: 0xffcc00,
+            roughness: 0.5,
+            metalness: 0.2
+        });
+
+        const decorPositions = [
+            { x: groundBounds.minX + 5, y: 0.6, z: groundBounds.minZ + 5 },
+            { x: groundBounds.maxX - 5, y: 0.6, z: groundBounds.minZ + 5 },
+            { x: groundBounds.minX + 5, y: 0.6, z: groundBounds.maxZ - 5 },
+            { x: groundBounds.maxX - 5, y: 0.6, z: groundBounds.maxZ - 5 }
+        ];
+
+        decorPositions.forEach(pos => {
+            const decor = new THREE.Mesh(decorGeo, decorMat);
+            decor.position.set(pos.x, pos.y, pos.z);
+            decor.castShadow = true;
+            scene.add(decor);
+        });
+
+        // ========== 10. 光源系统（性能优化版） ==========
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(-15, 40, 30);
+        dirLight.castShadow = true;
+
+        // 优化阴影质量以提升性能
+        dirLight.shadow.mapSize.width = 1024; // 降低阴影分辨率
+        dirLight.shadow.mapSize.height = 1024;
+        dirLight.shadow.camera.near = 1;
+        dirLight.shadow.camera.far = 150;
+        dirLight.shadow.camera.left = -40;
+        dirLight.shadow.camera.right = 40;
+        dirLight.shadow.camera.top = 40;
+        dirLight.shadow.camera.bottom = -40;
+
+        scene.add(dirLight);
+
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+        fillLight.position.set(20, 30, -20);
+        fillLight.castShadow = false; // 辅助光不产生阴影
+        scene.add(fillLight);
+
+        // ========== 新增：优化的展品介绍系统 ==========
+        const exhibitInfo = document.getElementById('exhibitInfo');
+        const exhibitInfoName = document.getElementById('exhibitInfoName');
+        const exhibitInfoContent = document.getElementById('exhibitInfoContent');
+
+        // 射线检测器
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2(0, 0); // 屏幕中心
+
+        // 当前选中的展品
+        let currentSelectedModel = null;
+        let hideTimer = null;
+
+        // 性能优化：降低检测频率
+        let frameCount = 0;
+        const CHECK_INTERVAL = 5; // 增加到每5帧检测一次
+        const MAX_DISTANCE = 25; // 最大检测距离减少到25单位
+
+        // 性能优化：缓存上次检测结果
+        let lastIntersectResult = null;
+        let lastCheckTime = 0;
+
+        // 性能优化：使用球形检测代替精确的包围盒检测
+        const detectionSpheres = [];
+
+        // 检测准星是否对准展品（优化版）
+        function checkExhibitIntersection() {
+            // 只在第一人称视角下检测
+            if (perspectiveMode !== "first") {
+                if (currentSelectedModel) {
+                    hideExhibitInfo();
+                }
+                return;
+            }
+
+            // 性能优化：降低检测频率
+            frameCount++;
+            if (frameCount % CHECK_INTERVAL !== 0) {
+                return;
+            }
+
+            // 性能优化：如果玩家没有移动且视角没有变化，跳过检测
+            const now = Date.now();
+            if (currentSelectedModel && now - lastCheckTime < 200) {
+                return;
+            }
+            lastCheckTime = now;
+
+            // 设置射线起点为相机位置，方向为相机朝向
+            raycaster.setFromCamera(mouse, camera);
+
+            // 性能优化：使用更高效的检测方法
+            let closestIntersection = null;
+            let closestDistance = Infinity;
+
+            // 创建检测用的球体（如果还没有创建）
+            if (detectionSpheres.length === 0) {
+                for (const modelInfo of glbModels) {
+                    // 使用更简单的球体碰撞检测
+                    const sphere = new THREE.Sphere();
+                    modelInfo.boundingBox.getBoundingSphere(sphere);
+                    sphere.radius *= 1.2; // 稍微扩大一点，更容易选中
+                    detectionSpheres.push({
+                        sphere: sphere,
+                        modelInfo: modelInfo
+                    });
+                }
+            }
+
+            for (const detectionSphere of detectionSpheres) {
+                const modelInfo = detectionSphere.modelInfo;
+
+                // 快速距离检查：如果模型距离相机太远，跳过检测
+                const distanceToCamera = camera.position.distanceTo(
+                    new THREE.Vector3(modelInfo.position.x, modelInfo.position.y, modelInfo.position.z)
+                );
+
+                // 如果距离超过最大检测距离，跳过检测
+                if (distanceToCamera > MAX_DISTANCE) {
+                    continue;
+                }
+
+                // 使用球体进行快速相交测试（比包围盒快）
+                const intersectPoint = raycaster.ray.intersectSphere(detectionSphere.sphere, new THREE.Vector3());
+
+                if (intersectPoint) {
+                    const distance = intersectPoint.distanceTo(camera.position);
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestIntersection = modelInfo;
+                    }
+                }
+            }
+
+            // 处理检测结果
+            if (closestIntersection && closestIntersection !== currentSelectedModel) {
+                // 清除之前的隐藏计时器
+                if (hideTimer) {
+                    clearTimeout(hideTimer);
+                    hideTimer = null;
+                }
+
+                // 显示新展品的介绍
+                currentSelectedModel = closestIntersection;
+                showExhibitInfo(currentSelectedModel);
+
+                // 缓存结果
+                lastIntersectResult = closestIntersection;
+            } else if (!closestIntersection && currentSelectedModel) {
+                // 没有对准任何展品，但之前有选中的展品
+                if (!hideTimer) {
+                    // 设置1秒后隐藏介绍
+                    hideTimer = setTimeout(() => {
+                        hideExhibitInfo();
+                        currentSelectedModel = null;
+                        hideTimer = null;
+                        lastIntersectResult = null;
+                    }, 1000);
+                }
+            } else if (closestIntersection && closestIntersection === currentSelectedModel) {
+                // 仍然对准同一个展品，重置隐藏计时器
+                if (hideTimer) {
+                    clearTimeout(hideTimer);
+                    hideTimer = null;
+                }
+            }
+        }
+
+        // 显示展品介绍
+        function showExhibitInfo(modelInfo) {
+            if (!modelInfo.infoLoaded) {
+                exhibitInfoName.textContent = `展品 ${modelInfo.modelIndex}`;
+                exhibitInfoContent.textContent = "介绍正在加载中...";
+            } else {
+                exhibitInfoName.textContent = modelInfo.infoName;
+                exhibitInfoContent.textContent = modelInfo.infoContent;
+            }
+
+            exhibitInfo.classList.add('show');
+        }
+
+        // 隐藏展品介绍
+        function hideExhibitInfo() {
+            exhibitInfo.classList.remove('show');
+        }
+
+        // ========== 11. 动画循环（性能优化版） ==========
+        let lastTime = 0;
+        const fpsLimit = 60; // 限制帧率
+        const frameTime = 1000 / fpsLimit;
+
+        function animate(currentTime) {
+            requestAnimationFrame(animate);
+
+            // 限制帧率以提高性能
+            const deltaTime = currentTime - lastTime;
+            if (deltaTime < frameTime) {
+                return;
+            }
+            lastTime = currentTime - (deltaTime % frameTime);
+
+            updatePlayerMovement();
+            updateCamera();
+
+            // 检查准星是否对准展品（已优化频率）
+            checkExhibitIntersection();
+
+            renderer.render(scene, camera);
+        }
+        requestAnimationFrame(animate);
+
+        // ========== 12. 窗口自适应 ==========
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ========== 13. 初始化 ==========
+        // 初始化背景音乐系统
+        initBackgroundMusic();
+
+        updateCamera();
+
+        console.log("✅ 展厅已启动（优化版人物模型）：");
+        console.log("📊 性能优化设置：");
+        console.log("  - 像素比固定: 1.0");
+        console.log("  - 抗锯齿: 关闭");
+        console.log("  - 渲染精度: lowp");
+        console.log("  - 检测频率: 每5帧检测一次");
+        console.log("  - 最大检测距离: " + MAX_DISTANCE + "单位");
+        console.log("  - 帧率限制: " + fpsLimit + "FPS");
+        console.log("  - 阴影分辨率: 1024x1024");
+        console.log("🎵 背景音乐系统：");
+        console.log("  - 音乐文件夹: " + musicFolder);
+        console.log("  - 自动播放: 是（需要用户交互后）");
+        console.log("  - 循环播放: 是");
+        console.log("  - 音量: 50%");
+        console.log("👤 人物模型设置：");
+        console.log("  - 模型文件: 3d_models/character.glb");
+        console.log("  - 模型高度: -0.3（离地面距离）");
+        console.log("  - 模型旋转: 180度");
+        console.log("  - 第一人称视角: 隐藏人物模型");
+        console.log("  - 第三人称视角: 显示人物模型");
+        console.log("  - 自发光强度: 0.3");
+        console.log("  - 阴影: 禁用（性能优化）");
+        console.log("📊 模型增强参数：");
+        console.log("  - 自发光强度: " + modelEmissiveIntensity);
+        console.log("  - 材质亮度提升: " + modelBrightnessBoost + "倍");
+        console.log("  - 所有模型统一倾斜角度: " + Math.round(unifiedTiltAngle * 180 / Math.PI) + "度");
+        console.log("  - 每个模型有专属光源");
+        console.log("  - 展品介绍功能已启用（仅第一人称视角，已优化性能）");
+        console.log("  - 介绍文本路径: " + introductionFolder + "/");
+        console.log("  - TXT格式: 第一行为展品名称，剩余为介绍内容");
+    </script>
+</body>
+</html>

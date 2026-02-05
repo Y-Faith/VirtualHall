@@ -252,8 +252,9 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/libs/draco/gltf/draco_decoder.js"></script>
 
     <script>
+        const baseUrl = "https://cdn.jsdelivr.net/gh/Y-Faith/VirtualHall";
         // ========== 新增：背景音乐系统 ==========
-        const musicFolder = "music"; // 音乐文件夹名称
+        const musicFolder = `${baseUrl}/music`; // 音乐外链路径
         let backgroundMusic = null;
         let isMusicPlaying = false;
         let currentMusicIndex = 0;
@@ -563,7 +564,7 @@
 
         // 加载人物模型
         characterLoader.load(
-            '3d_models/character.glb', // 人物模型文件路径
+            `${baseUrl}/3d_models/character.glb`, // 人物模型文件路径
             (gltf) => {
                 characterModel = gltf.scene;
 
@@ -827,8 +828,8 @@
 
         // ========== 9. 核心：展品设置（包括介绍功能） ==========
         const totalExhibits = 20;
-        const modelFolder = "3d_models";
-        const introductionFolder = "introduction"; // 介绍文本文件夹
+        const modelFolder = `${baseUrl}/3d_models`; // 模型外链路径
+        const introductionFolder = `${baseUrl}/introduction`; // 介绍文本外链路径
         const exhibitGapX = 18;
         const exhibitGapZ = 18;
         const modelScale = 3.0;

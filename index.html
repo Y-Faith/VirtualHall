@@ -246,10 +246,10 @@
     </div>
 
     <!-- 引入稳定Three.js及GLTF加载器CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/loaders/DRACOLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/libs/draco/gltf/draco_decoder.js"></script>
+    <script src="https://unpkg.com/three@0.145.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.145.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://unpkg.com/three@0.145.0/examples/js/loaders/DRACOLoader.js"></script>
+    <script src="https://unpkg.com/three@0.145.0/examples/js/libs/draco/gltf/draco_decoder.js"></script>
 
     <script>
         const baseUrl = "https://cdn.jsdelivr.net/gh/Y-Faith/VirtualHall";
@@ -853,7 +853,7 @@
         // 重要：必须先引入 DRACOLoader.js 和 draco_decoder.js
         const dracoLoader = new THREE.DRACOLoader();
         // 设置解码器路径（指向上面引入的CDN目录）
-        dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/libs/draco/gltf/');
+        dracoLoader.setDecoderPath('https://unpkg.com/three@0.145.0/examples/js/libs/draco/gltf/');
 
         // 将 Draco 解码器同时配置给展厅模型加载器和人物模型加载器
         loader.setDRACOLoader(dracoLoader);
